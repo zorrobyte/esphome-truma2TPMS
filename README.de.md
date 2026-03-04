@@ -16,7 +16,7 @@ Dieses Projekt baut außerdem auf der unglaublichen Vorarbeit des [WomoLIN-Proje
 
 ## Was dieser Fork ergänzt
 
-Dieser Fork erweitert die ursprüngliche Komponente um mehrere praxiserprobte Funktionen, die im täglichen Betrieb in einem Wohnmobil mit einer Truma Combi 6DE und einem ESP32-S3-Board entwickelt wurden. Die vollständige, funktionsfähige Konfiguration findet sich in [`truma.yaml`](truma.yaml).
+Dieser Fork erweitert die ursprüngliche Komponente um mehrere praxiserprobte Funktionen, die im täglichen Betrieb in einem Wohnmobil mit einer Truma Combi 6DE und einem ESP32-S3-Board entwickelt wurden. Die vollständige, funktionsfähige Konfiguration findet sich in [`ESP32-S3_truma_6DE_example.yaml`](ESP32-S3_truma_6DE_example.yaml).
 
 ### TPMS — Reifendrucküberwachung via Bluetooth Proxy
 
