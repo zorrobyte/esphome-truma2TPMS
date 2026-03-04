@@ -1,4 +1,4 @@
-# **ESPHome & Truma CP Plus — the joy of every motorhome enthusiast.**
+# ESPHome & Truma CP Plus — smart heating and more for the open road 🚐
 
 ESPHome component to remote control Truma CP Plus Heater by simulating a Truma iNet box.
 
@@ -10,11 +10,81 @@ A huge and heartfelt thank you goes to **[Fabian Schmidt](https://github.com/Fab
 
 This project also builds on the incredible groundwork laid by the [WomoLIN project](https://github.com/muccc/WomoLIN) and [Daniel Fett's inetbox.py](https://github.com/danielfett/inetbox.py), as well as [mc0110's inetbox2mqtt](https://github.com/mc0110/inetbox2mqtt) — their protocol research, log files and documentation have been invaluable.
 
+---
+
+## What this fork adds
+
+This fork extends the original component with several real-world features developed during daily use in a motorhome with a Truma Combi 6DE and an ESP32-S3 board. The full working configuration is provided in [`truma.yaml`](truma.yaml).
+
+### TPMS — Tire Pressure Monitoring via Bluetooth Proxy
+
+The ESP32 doubles as a Bluetooth Low Energy (BLE) receiver for aftermarket TPMS sensors, eliminating the need for a separate gateway. Four sensors are monitored simultaneously (front-left, front-right, rear-right, rear-left), each reporting:
+
+- Tire pressure in bar
+- Tire temperature in °C
+- Sensor battery voltage in V
+
+The integration uses `esp32_ble_tracker` with passive scanning and parses the manufacturer-specific advertisement payload directly in a C++ lambda. All twelve sensor entities appear automatically in Home Assistant as diagnostic sensors.
+
+To adapt this for your own sensors, replace the four MAC addresses in the `on_ble_advertise` blocks with those of your TPMS sensors. The payload decoding logic (pressure offset, scaling) may need adjustment depending on your sensor brand.
+
+> Note: BLE scanning and the Truma LIN bus operate in parallel on the same chip. On an ESP32-S3 with OctalSPI PSRAM the BLE stack can be offloaded to PSRAM, which significantly reduces the risk of memory conflicts. The provided PSRAM `sdkconfig_options` in `truma.yaml` are already configured for this.
+
+### Diesel De-coking (Entkokung) — confirmed by Truma Support upon inquiry
+
+When a Truma Combi is operated on diesel for extended periods, carbon deposits can build up in the combustion chamber and burner nozzle. Upon direct inquiry, Truma Support confirmed the following recommendations to keep the heater in good condition:
+
+- Run a monthly de-coking cycle (automated by this configuration, see below).
+- Use high-quality diesel fuel, or add a cetane-boosting additive to the tank — a higher cetane number leads to cleaner combustion and reduces deposit buildup.
+
+The built-in `script_diesel_entkokung` automates this procedure:
+
+1. Switches the energy mix to Diesel
+2. Sets the room heater to 30 °C / HIGH mode for 45 minutes
+3. Shuts the heater off cleanly afterwards
+4. (open doors and windows ;-) )
+
+Two buttons are exposed in Home Assistant:
+
+| Button | Function |
+|---|---|
+| Start Diesel De-coking | Starts the 45-minute de-coking cycle |
+| Abort Diesel De-coking | Aborts the cycle immediately and turns off the heater |
+
+A template sensor (Diesel De-coking Remaining Time, unit: min) counts down the remaining time and is visible in the Home Assistant dashboard and the built-in web UI.
+
+### Fine-tuning, Monitoring & Stability
+
+The `truma.yaml` configuration includes a number of production-hardened settings that are not part of the basic example:
+
+WiFi resilience — A 5-minute interval checks for lost connectivity and performs a soft reconnect (`wifi.disable` → delay → `wifi.enable`) without rebooting the ESP. `reboot_timeout` is set to `0s` to prevent unexpected reboots during heating cycles.
+
+WiFi RF tuning — Output power is fixed at `17 dB` and power-save mode is set to `light` for a reliable connection in a metal vehicle body.
+
+System diagnostics — The following sensors are always available in Home Assistant:
+
+| Sensor | Description |
+|---|---|
+| TR ESP32 Temperature | Internal chip temperature |
+| TR WiFi Signal dB | Raw RSSI in dBm (updated every 60 s) |
+| TR WiFi Signal | RSSI mapped to 0–100 % for easy dashboarding |
+| Uptime Sensor | Time since last boot |
+
+Home Assistant time sync — The ESP clock is kept in sync via the Home Assistant time platform, which is required for the timer actions to work correctly.
+
+Built-in web UI — A local web server runs on port 80 (ESPHome Web Server v3) with `include_internal: true`, so all entities including internal diagnostics are visible directly in the browser without needing Home Assistant.
+
+Template switches — Ready-to-use on/off switches for the room heater, water heater, and the built-in timer are included, making automation and dashboard integration straightforward.
+
+Restart button — A one-click ESP restart button is exposed in Home Assistant for remote maintenance.
+
+---
+
 ## Example configurations
 
-This repository provides two ready-to-use example configurations for the **Truma Combi 6DE** heater.
-Both use the **ESP-IDF framework** and pull the component directly from this repository.
-Requires **ESPHome >= 2026.2.2**.
+This repository provides two ready-to-use example configurations for the Truma Combi 6DE heater.
+Both use the ESP-IDF framework and pull the component directly from this repository.
+Requires ESPHome >= 2026.2.2.
 
 ### Choosing the right file
 
@@ -29,10 +99,10 @@ Requires **ESPHome >= 2026.2.2**.
 | Minimum chip revision | optional (`CONFIG_ESP32_REV_MIN`, commented out) | no restriction |
 | Log level | `DEBUG` | `DEBUG` |
 
-**Use the ESP32 file** if you have a standard ESP32 (WROOM-32, DevKit etc.) without PSRAM.
+Use the ESP32 file if you have a standard ESP32 (WROOM-32, DevKit etc.) without PSRAM.
 Uncommenting `CONFIG_ESP32_REV_MIN: "3"` and `version: recommended` can reduce binary size on older toolchains.
 
-**Use the ESP32-S3 file** if you have an ESP32-S3 module with OctalSPI PSRAM (e.g. N16R8).
+Use the ESP32-S3 file if you have an ESP32-S3 module with OctalSPI PSRAM (e.g. N16R8).
 The PSRAM configuration (OCT mode, 80 MHz) is required for this module variant.
 The UART pins have been moved away from GPIO16/17, which are reserved for PSRAM on S3 boards.
 
@@ -248,3 +318,17 @@ Please test it with your setup and let us know how it goes — whether everythin
 or you run into any issues. Feel free to open an issue on
 [GitHub](https://github.com/havanti/esphome-truma/issues) with your findings,
 bug reports, or suggestions for improvement. Every report helps make this project better for everyone.
+
+---
+
+## Trademark Notice
+
+TRUMA is a registered trademark (Registration #4140922) owned by Truma Gerätetechnik GmbH & Co. KG, a Putzbrunn-based entity. This project is an independent, community-driven open-source effort and is neither affiliated with, endorsed by, nor supported by Truma Gerätetechnik GmbH & Co. KG. The use of the name "Truma" in this repository is solely for the purpose of technical identification and compatibility description.
+
+## Disclaimer
+
+Use of this project is entirely voluntary and at your own risk.
+
+This software is provided "as is", without warranty of any kind, express or implied. The author(s) accept no liability whatsoever for any damage to persons, property, vehicles, heating appliances, or any other assets arising from the use, misuse, or inability to use this software or the configurations provided herein. This includes, but is not limited to, damage resulting from incorrect configuration, unexpected device behaviour, software bugs, or hardware failure.
+
+Before using any automation that controls a gas or diesel heater, ensure you understand the operation of your specific device and comply with all applicable safety regulations. Always test new configurations under supervised conditions.
