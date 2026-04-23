@@ -1,0 +1,364 @@
+# Changelog
+
+🇩🇪 Deutsch | [🇬🇧 English](CHANGELOG.en.md)
+
+Alle wesentlichen Änderungen an diesem Projekt werden in dieser Datei dokumentiert.
+
+Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+---
+
+## Kompatibilitätsstatus
+
+### Zusammenfassung
+
+Dieses Release stellt die Kompatibilität mit ESPHome 2025.8 bis 2026.4.x wieder her.
+Hauptursache war die Entfernung von `get_uart_event_queue()` aus der upstream
+`IDFUARTComponent` in ESPHome 2025.8, wodurch die LIN-Bus-BREAK-Erkennung bei
+ESP-IDF-Builds nicht mehr funktionierte. Zusätzliche Breaking Changes in ESP-IDF 5.x
+(ESP32-Toolchain) und ESPHome 2026.x API-Änderungen wurden ebenfalls behoben.
+
+Getestet mit:
+- ESPHome **2026.4.2** — ESP-IDF ✅
+- ESPHome **2026.4.1** — ESP-IDF ✅
+- ESPHome **2026.4.0** — ESP-IDF ✅
+- ESPHome **2026.3.3** — ESP-IDF ✅
+- ESPHome **2026.3.2** — ESP-IDF ✅
+- ESPHome **2026.3.1** — ESP-IDF ✅
+- ESPHome **2026.3.0** — ESP-IDF ✅
+
+---
+
+
+## [1.0.14] — 2026-04-21 — Truma Cooler C(XX) Integration
+
+### Hinzugefügt
+- Unterstützung für die Truma Cooler C(XX)-Serie über BLE (aktive Verbindung via `ble_client`)
+- Neue Komponente `truma_cooler` unter `components/truma_cooler/` (parallel zu `truma_inetbox` und `uart`)
+- Entitäten: Climate (Solltemperatur −22 °C bis +10 °C), Innentemperatur, Außentemperatur, Kompressor-Status, Turbo-Schalter, Gerätestatus, BLE-Verbindungsstatus
+- Beispielkonfiguration `ESP32_truma_cooler_example.yaml` (M5Stack Atom Lite)
+- Hinweis auf optionale parallele Nutzung als ESPHome Bluetooth Proxy (M5Stack Atom)
+
+---
+
+
+## [1.0.13] — 2026-04-20 — Truma Aventa Gen 2 Klimaanlage
+
+### Hinzugefügt
+- Unterstützung für die Truma Aventa Gen 2 Klimaanlage über denselben LIN-Bus wie die Heizung (CP Plus / iNet Box)
+- Neuer Climate-Typ `AIRCON` für vollständige HA-Klimaentität (Modi: Off / Cool / Heat / Heat+Cool / Fan only)
+- Neue Select-Typen `AIRCON_MODE` und `AIRCON_VENT_MODE` für direkten Zugriff auf Betriebsmodus und Lüftergeschwindigkeit
+- Neue Number-Typ `AIRCON_MANUAL_TEMPERATURE` (bereits vorhanden, jetzt dokumentiert)
+- Beispielkonfiguration `ESP32-S3_truma_Aventa_example.yaml`
+
+---
+
+
+## [1.0.12] — 2026-04-19 — LIN-Protokoll- und Thread-Safety-Fixes
+
+### Behoben
+- LIN Multi-PDU-Längendecodierung korrigiert (Operator-Präzedenz `&` vs. `<<`):
+  Multi-Frame-Nachrichten > 255 Byte wurden zuvor mit Länge 0 verworfen
+- Längenprüfung vor `reinterpret_cast` auf eingehende Truma-Frames ergänzt
+- `micros()`-Vergleiche nach dem 71-Minuten-Überlauf durch vorzeichenlose Differenzen abgesichert
+- Thread-Sicherheit: Zeitstempel-Felder (`device_registered_`, `init_requested_`,
+  `init_received_`, `update_time_`) auf `std::atomic<uint32_t>` umgestellt
+  (Zugriff aus UART-Task und Main-Loop)
+- LIN-Logging: Post-Increment-Fehler (`len = len++`) behoben, CRC-Byte wurde nicht geloggt
+- Printf-Formatbezeichner `%S` → `%s` korrigiert
+
+## [1.0.11] — 2026-04-17 — ESPHome 2026.4.0 Kompatibilität
+
+### Dokumentation
+- Hardware-Dokumentation auf Nutzerwunsch erweitert, um den Nachbau zu erleichtern
+
+### Behoben
+- `cg.templatable()`-Aufrufe in `__init__.py` für ESPHome 2026.4.x korrigiert:
+  Enum-Typen (`HeatingMode`, `TargetTemp`, `EnergyMix`, `ElectricPowerLevel`) verwenden
+  jetzt `_dummy_ns`-Referenzen statt `cg.uint16`/`cg.uint8`
+- Entity-Key-Kollisionen zwischen gleichnamigen Sensor- und Number-/Select-Entities
+  behoben, die unter ESPHome 2026.4.0 zu einem `aioesphomeapi`-Absturz führten
+  (`AttributeError: 'NumberInfo'/'SelectInfo' has no attribute 'accuracy_decimals'`)
+
+### Geändert
+
+**Hintergrund:** In ESPHome erhält jede Entity einen eindeutigen Schlüssel (Hash des
+Namens). Haben zwei Entities desselben Geräts den gleichen Namen — auch wenn sie
+unterschiedliche Typen sind (Sensor vs. Number oder Select) — kollidieren ihre Keys.
+Seit ESPHome 2026.4.0 hat sich die Reihenfolge geändert, in der `aioesphomeapi` die
+Entity-Liste aufbaut, wodurch diese Kollisionen erstmals zu Abstürzen führten.
+
+Folgende Sensor-Namen wurden in allen Beispiel-YAMLs umbenannt:
+
+| Alter Name (sensor) | Neuer Name (sensor) | Konflikt mit |
+|---|---|---|
+| `Target Room Temperature` | `Target Room Temperature Status` | Number |
+| `Target Water Temperature` | `Target Water Temperature Status` | Number |
+| `Electric Power Level` | `Electric Power Level Status` | Number |
+| `Energy Mix` | `Energy Mix Status` | Select |
+
+> **Migrationshinweis für bestehende Installationen:** Nach dem Flashen erscheinen
+> die alten Sensor-Entities in Home Assistant als „unavailable". Diese müssen manuell
+> gelöscht und die neuen Entities (mit dem Suffix „Status") neu in Dashboards und
+> Automationen eingebunden werden.
+
+---
+
+## [1.0.10] — 2026-04-11 — Weitere Aufräumarbeiten
+
+### Geändert
+- Doppelte Makro-Definitionen `DIAGNOSTIC_FRAME_MASTER` / `DIAGNOSTIC_FRAME_SLAVE` aus zwei `.cpp`-Dateien entfernt und als einmalige `constexpr` in `LinBusListener.h` zusammengeführt
+- Magic Number `1440` durch benannte Konstante `MINUTES_PER_DAY` ersetzt
+- `dump_data()` im Heater-Modul implementiert: loggt Soll-Temperaturen, Heizmodus, Energiemix, Leistungsstufe und Betriebsstatus auf DEBUG-Ebene; Fehlercodes auf WARN-Ebene
+- Irreführenden Kommentar im Konsistenz-Guard von `action_heater_energy_mix()` korrigiert
+- Falschen Label `"Truma Climate"` in `TrumaWaterClimate::dump_config()` auf `"Truma Water Climate"` korrigiert
+- Auskommentierten Preset-Code und toten Optionen-Loop entfernt
+
+---
+
+## [1.0.9] — 2026-04-02 — Aufräumen
+
+### Geändert
+- Magic-Number-Timeouts durch benannte `constexpr`-Konstanten ersetzt
+- `const` für lokale Variable `lin_identifier` ergänzt
+
+---
+
+## [1.0.8] — 2026-03-30 — Codequalität
+
+### Behoben
+- Falsche Feldzuweisungen in den Antwort-Frames für Energiemix und elektrische Leistungsstufe behoben
+
+### Geändert
+- Tippfehler im gesamten Codebase bereinigt
+- Veraltete und erledigte Kommentare entfernt
+- Codekommentare überarbeitet und vereinheitlicht
+
+### Dokumentation
+- READMEs um Hinweis auf @kamahat und dessen Fork ergänzt
+
+---
+
+## [1.0.7] — 2026-03-28 — Kleinere Verbesserungen
+
+### Behoben
+- Log-Level für „LIN CRC error on SID" von WARN auf VERBOSE gesenkt — kein echter Fehler, nur eine zu langsame Truma-Antwort (vorgeschlagen von @kamahat)
+
+### Dokumentation
+- `min_version: 2026.3.1` in allen Beispiel-YAMLs ergänzt
+- CONTRIBUTING-Dateien (DE/EN/FR) hinzugefügt
+
+---
+
+## [1.0.6] — 2026-03-27 — Robustheit
+
+### Behoben
+
+#### `components/truma_inetbox/LinBusListener_esp_idf.cpp`
+- `uartEventTask_`: Absturz beim Start auf Dual-Core-ESP32 behoben, bei dem der Task
+  `xQueueReceive()` mit einem NULL-Queue-Handle aufrufen konnte, bevor `uart_driver_install()`
+  auf Core 1 abgeschlossen war
+- Timeout von 5 Sekunden zur Queue-Warteloop hinzugefügt: falls der UART-Treiber nie
+  verfügbar wird (z. B. bei fehlgeschlagenem UART-Setup), loggt der Task jetzt eine
+  klare Fehlermeldung und beendet sich sauber, anstatt still weiterzulaufen
+
+---
+
+## [1.0.5] — 2026-03-27 — Verbesserungen
+
+### Geändert
+
+#### Beispiel-YAMLs (alle vier)
+- `refresh` in `external_components` von `0s` auf `24h` geändert — ESPHome prüft einmal täglich auf Updates
+- Zwei auskommentierte Alternativen ergänzt: `refresh: always` (für Entwicklung) und `refresh: 0s` (kein automatisches Update)
+
+---
+
+## [1.0.4] — 2026-03-23 — Fehlerbehebungen
+
+### Behoben
+
+#### `components/uart/__init__.py`
+- `validate_raw_data()`: zweiter `isinstance(value, str)`-Check (toter Code, nie erreichbar) korrigiert zu `isinstance(value, bytes)`
+
+#### `README.md` / `README.en.md`
+- Veralteter Dateiname `ESP32-S3_truma_6DE_example.yaml` → `ESP32-S3_truma_6DE_Diesel_example.yaml` (Datei wurde zuvor umbenannt)
+
+---
+
+## [1.0.3] — 2026-03-22 — OTA, Aufräumen
+
+### Hinzugefügt
+
+#### Alle WiFi-basierten Beispiel-YAMLs
+- `ota`-Block (`platform: esphome`, Passwort-Platzhalter) zu allen WiFi-basierten Beispielkonfigurationen hinzugefügt
+
+#### `README.md` / `README.en.md`
+- OTA-Abschnitt ergänzt: Erklärung von Over-the-Air-Updates und Hinweis zum Passwort-Platzhalter
+
+### Entfernt
+
+- `WomoLinControllerEthernet.yaml` — entfernt (Ethernet-spezifisch, wird hier nicht gepflegt)
+- `WomoLinControllerEthernetMqtt.yaml` — entfernt (Ethernet-spezifisch, wird hier nicht gepflegt)
+- Verzeichnis `examples/` — entfernt (durch Root-Level-Beispiel-YAMLs ersetzt)
+
+---
+
+## [1.0.2] — 2026-03-19 — Beispielkonfigurationen und Dokumentation
+
+### Hinzugefügt
+
+#### `ESP32_truma_4-6_Gas_example.yaml` / `ESP32-S3_truma_4-6_Gas_example.yaml` (neu)
+- Gas-Variante der Beispielkonfigurationen mit `HEATER_GAS` und `HEATER_ENERGY_MIX_GAS`
+- Diesel-„Entkokung"/Rückstandsverbrennung (Script, Sensor, Buttons) nicht enthalten (nur Gasbetrieb)
+
+### Geändert
+
+#### `ESP32_truma_6DE_example.yaml` → `ESP32_truma_6DE_Diesel_example.yaml`
+#### `ESP32-S3_truma_6DE_example.yaml` → `ESP32-S3_truma_6DE_Diesel_example.yaml`
+- Umbenannt, um die Diesel-Variante explizit kenntlich zu machen
+
+#### `components/truma_inetbox/__init__.py` / `components/uart/__init__.py`
+- `synchronous=True` zu allen `register_action()`-Aufrufen hinzugefügt
+  (ESPHome 2026.3.0 erfordert diesen Parameter; alle `play()`-Methoden sind synchron)
+
+#### `README.md` / `README.en.md`
+- Beispielkonfigurations-Abschnitt in 2-Schritt-Auswahl umstrukturiert (Energiemix → Hardware)
+- Übersichtstabelle Gas-/Diesel-Variante ergänzt
+- Kompatibilitätshinweis für Truma Combi 4 ergänzt
+- Kompatibilitätsvorbehalt ergänzt: getestet mit Truma Combi 6DE (Baujahr 2018, Eberspächer-Brenner);
+  neuere Truma-Diesel-Generationen ohne Eberspächer nicht verifiziert
+- Einleitungsabsatz aus dem Upstream-Repo (Fabian-Schmidt) entfernt
+- Redaktionelle Überarbeitung
+
+---
+
+## [1.0.1] — 2026-03-14 — ESPHome 2026.6 Kompatibilität (Deprecation-Nachfolge)
+
+### Geändert
+
+#### `components/truma_inetbox/__init__.py`
+- `CORE.using_esp_idf` → `CORE.is_esp32 and not CORE.using_arduino`
+  Seit ESPHome 2026.1 als veraltet markiert (Verhaltensänderung in 2026.6). Die Bedingung
+  zielt auf ESP-IDF-only-Builds ab, in denen die `ARDUINO_SERIAL_EVENT_TASK_*`-Makros
+  nicht vom Framework bereitgestellt werden.
+
+#### `components/uart/__init__.py`
+- `CORE.using_esp_idf` → `not CORE.using_arduino`
+  Gleiche Deprecation-Korrektur im UART-Typ-Selektor (`_uart_declare_type`).
+
+#### `components/truma_inetbox/LinBusListener_esp_idf.cpp`
+- `#ifndef`-Fallback-Defines für `ARDUINO_SERIAL_EVENT_TASK_STACK_SIZE` (4096)
+  und `ARDUINO_SERIAL_EVENT_TASK_RUNNING_CORE` (0) ergänzt, damit die Datei auch
+  ohne Build-Flags kompiliert (Sicherheitsnetz).
+
+#### `components/truma_inetbox/climate/TrumaWaterClimate.cpp`
+#### `components/truma_inetbox/climate/TrumaRoomClimate.cpp`
+- `traits.set_supports_current_temperature(true)`
+  → `traits.add_feature_flags(climate::CLIMATE_SUPPORTS_CURRENT_TEMPERATURE)`
+  `set_supports_current_temperature` ist ab ESPHome 2025+ veraltet.
+
+---
+
+## [1.0.0] — 2026-03-02 — ESPHome 2025.8+ / 2026.3.x Kompatibilität — Details
+
+### Geändert — `components/uart/`
+
+#### `uart_component.h`
+- `virtual int available()` → `virtual size_t available()` entsprechend der ESPHome 2025.8+ Signatur
+- Standard-(No-op-)Implementierungen für neue virtuelle Methoden aus ESPHome 2025.8 ergänzt:
+  `set_rx_full_threshold()`, `set_rx_timeout()`, `load_settings(bool)`, `load_settings()`
+
+#### `uart_component.cpp`
+- `check_read_timeout_()` verwendet nun `size_t`-Vergleiche (keine unnötigen `int`-Casts)
+
+#### `uart_component_esp_idf.h` _(kritisch)_
+- Präprozessor-Guard geändert: `USE_ESP_IDF` → `USE_ESP32_FRAMEWORK_ESP_IDF`
+- `SemaphoreHandle_t lock_`-Member entfernt (Mutex in Upstream 2025.8 entfernt)
+- `int available()` → `size_t available()`
+- `get_hw_serial_number()` direkt in `IDFUARTComponent`-Basisklasse ergänzt
+- Deklarationen für `load_settings()`, `set_rx_full_threshold()`, `set_rx_timeout()` ergänzt
+- `uart_event_queue_` **bedingungslos** behalten (nicht durch `USE_UART_WAKE_LOOP_ON_RX` abgesichert),
+  da der LIN-Bus-BREAK-Erkennungs-Task sie jederzeit benötigt
+
+#### `uart_component_esp_idf.cpp` _(kritisch)_
+- Präprozessor-Guard geändert: `USE_ESP_IDF` → `USE_ESP32_FRAMEWORK_ESP_IDF`
+- `UART_SCLK_APB` → `UART_SCLK_DEFAULT` (ESP-IDF 5.x API-Änderung)
+- `portTICK_RATE_MS` → `pdMS_TO_TICKS(20)` (aus ESP-IDF 5.x entfernt)
+- Alle `lock_`-Mutex-take/give-Aufrufe entfernt (~12 Stellen)
+- `static uint8_t next_uart_num` → `static uart_port_t next_uart_num = UART_NUM_0`
+  (ESP-IDF 5.x: `uart_port_t` ist ein Scoped Enum, keine implizite `uint8_t`-Konvertierung)
+- Postfix-`++` auf `uart_port_t` durch expliziten Cast ersetzt:
+  `next_uart_num = (uart_port_t)(next_uart_num + 1)`
+- `int available()` → `size_t available()`
+- Implementierungen für `load_settings()`, `set_rx_full_threshold()`, `set_rx_timeout()` ergänzt
+
+#### `truma_uart_component_esp_idf.h`
+- Präprozessor-Guard geändert: `USE_ESP_IDF` → `USE_ESP32_FRAMEWORK_ESP_IDF`
+- `get_hw_serial_number()` entfernt (wird jetzt von `IDFUARTComponent`-Basisklasse bereitgestellt)
+- `get_uart_event_queue()` bleibt erhalten und gibt `&uart_event_queue_` zurück
+
+#### `uart_component_esp32_arduino.h` / `.cpp`
+- `int available()` → `size_t available()`
+- `check_logger_conflict()`: `logger::global_logger->get_hw_serial()` mit
+  `#if defined(USE_LOGGER) && !defined(USE_ESP32)` abgesichert — ESPHome 2026.1 hat
+  `get_hw_serial()` aus `Logger` für ESP32 entfernt (Arduino auf ESP32 baut jetzt auf IDF auf)
+
+#### `uart_component_rp2040.h` / `.cpp`
+- `int available()` → `size_t available()`
+
+#### `uart_component_esp8266.h` / `.cpp`
+- `ESP8266UartComponent::available()`: `int` → `size_t`
+
+---
+
+### Geändert — `components/truma_inetbox/`
+
+#### POSIX-Integer-Typ-Ersetzungen (alle 30 betroffenen Dateien)
+- `u_int8_t` → `uint8_t`
+- `u_int16_t` → `uint16_t`
+- `u_int32_t` → `uint32_t`
+
+Diese POSIX-Typen (`u_int*_t`) werden implizit von glibc-/BSD-libc-Headern bereitgestellt,
+die die Arduino-Toolchain automatisch einbindet. Die ESP-IDF 5.x GCC-Toolchain stellt sie
+**nicht** bereit, was zu 294 Kompilierfehlern in 30 Dateien führte.
+
+Betroffene Dateien:
+`LinBusProtocol.h`, `LinBusProtocol.cpp`, `LinBusListener.h`, `LinBusListener.cpp`,
+`TrumaiNetBoxApp.h`, `TrumaiNetBoxApp.cpp`, `TrumaiNetBoxAppHeater.h/cpp`,
+`TrumaiNetBoxAppAirconManual.h/cpp`, `TrumaiNetBoxAppAirconAuto.h/cpp`,
+`TrumaiNetBoxAppClock.h/cpp`, `TrumaiNetBoxAppTimer.h/cpp`,
+`TrumaStructs.h`, `TrumaEnums.h`, `TrumaStatusFrameBuilder.h`,
+`TrumaStausFrameResponseStorage.h`, `helpers.h`, `helpers.cpp`,
+`automation.h`, `time/TrumaTime.h` sowie sensor/number/select/climate-Unterkomponenten.
+
+#### `LinBusListener_esp_idf.cpp`
+- `#define QUEUE_WAIT_BLOCKING (portTickType) portMAX_DELAY`
+  → `(TickType_t) portMAX_DELAY`
+  (`portTickType` wurde in FreeRTOS 10 / ESP-IDF 5.x in `TickType_t` umbenannt)
+- `uart_intr_config(uart_num, &uart_intr)` → `uart_intr_config((uart_port_t) uart_num, &uart_intr)`
+  (ESP-IDF 5.x: `uart_intr_config` erfordert `uart_port_t`, keine implizite `uint8_t`-Konvertierung)
+
+#### `LinBusListener_esp32_arduino.cpp`
+- `#define QUEUE_WAIT_BLOCKING (portTickType) portMAX_DELAY`
+  → `(TickType_t) portMAX_DELAY`
+  (gleiche FreeRTOS-Umbenennung, betrifft auch Arduino auf ESP32, das auf ESP-IDF 5.x aufbaut)
+
+---
+
+### Hinzugefügt
+
+- `test_compile.yaml` — minimale Testkonfiguration für ESP32-Arduino-Framework-Builds
+- `test_compile_idf.yaml` — minimale Testkonfiguration für ESP32-ESP-IDF-Framework-Builds
+
+---
+
+### Hinweise
+
+- ESPHome **2026.1.x existiert nicht** auf PyPI — die Versionsnummerierung springt von 2025.10.x
+  direkt zu 2026.2.x.
+- ESPHome 2026.1 hat `CORE.using_esp_idf` als veraltet markiert (nur Warnung; Verhaltensänderung in 2026.6).
+  ESP32 Arduino baut nun offiziell auf ESP-IDF auf, sodass IDF-Features in beiden Frameworks verfügbar sind.
+  Die `uart_component_esp32_arduino`-Komponente funktioniert weiterhin als benutzerdefinierter Override.
+- Die Installation von ESPHome 2026.2.x in einem Python-venv erfordert zusätzlich das
+  `fatfs-ng`-Paket (`pip install fatfs-ng`) als transitive PlatformIO-Abhängigkeit.
