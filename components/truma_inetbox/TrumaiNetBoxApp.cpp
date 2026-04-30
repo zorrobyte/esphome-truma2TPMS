@@ -390,14 +390,12 @@ bool TrumaiNetBoxApp::has_update_to_submit_() {
   // If logging is necessary use logging queue of LinBusListener class.
   if (this->init_requested_.load(std::memory_order_relaxed) == 0) {
     this->init_requested_.store(micros(), std::memory_order_relaxed);
-    // ESP_LOGD(TAG, "Requesting initial data.");
     return true;
   } else if (this->init_received_.load(std::memory_order_relaxed) == 0) {
     // Unsigned subtraction is wraparound-safe after the micros() 71-minute rollover.
     auto init_wait_time = micros() - this->init_requested_.load(std::memory_order_relaxed);
     // it has been 5 seconds and i am still awaiting the init data.
     if (init_wait_time > INIT_RETRY_DELAY_US) {
-      // ESP_LOGD(TAG, "Requesting initial data again.");
       this->init_requested_.store(micros(), std::memory_order_relaxed);
       return true;
     }
@@ -405,14 +403,12 @@ bool TrumaiNetBoxApp::has_update_to_submit_() {
              this->heater_.has_update() || this->timer_.has_update()) {
     auto update_time_snapshot = this->update_time_.load(std::memory_order_relaxed);
     if (update_time_snapshot == 0) {
-      // ESP_LOGD(TAG, "Notify CP Plus I got updates.");
       this->update_time_.store(micros(), std::memory_order_relaxed);
       return true;
     }
     // Unsigned subtraction is wraparound-safe after the micros() 71-minute rollover.
     auto update_wait_time = micros() - update_time_snapshot;
     if (update_wait_time > UPDATE_RETRY_DELAY_US) {
-      // ESP_LOGD(TAG, "Notify CP Plus again I still got updates.");
       this->update_time_.store(micros(), std::memory_order_relaxed);
       return true;
     }

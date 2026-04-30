@@ -228,10 +228,8 @@ void LinBusListener::read_lin_frame_() {
         TRUMA_LOGVV_ISR(log_msg);
       } else {
         if (buf == LIN_BREAK) {
-          // ESP_LOGVV(TAG, "%02X BREAK received.", buf);
           this->current_state_ = READ_STATE_SYNC;
         } else if (buf == LIN_SYNC) {
-          // ESP_LOGVV(TAG, "%02X SYNC found.", buf);
           this->current_state_ = READ_STATE_SID;
         }
       }
@@ -244,7 +242,6 @@ void LinBusListener::read_lin_frame_() {
         TRUMA_LOGVV_ISR(log_msg);
         this->current_state_ = buf == LIN_BREAK ? READ_STATE_SYNC : READ_STATE_BREAK;
       } else {
-        // ESP_LOGVV(TAG, "%02X SYNC found.", buf);
         this->current_state_ = READ_STATE_SID;
       }
       break;
