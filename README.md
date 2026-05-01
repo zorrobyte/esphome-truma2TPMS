@@ -93,7 +93,7 @@ external_components:
       url: https://github.com/havanti/esphome-truma
       ref: main
     components: [truma_cooler]
-    refresh: 24h
+    refresh: always
 ```
 
 > **Hinweis:** Das Protokoll wurde ausschließlich am C44 reverse-engineered. Rückmeldungen zu anderen Modellen sind willkommen — bitte ein [Issue](../../issues) öffnen.
@@ -295,7 +295,7 @@ external_components:
       type: git
       url: https://github.com/havanti/esphome-truma.git
     components: [truma_inetbox, uart]
-    refresh: 0s
+    refresh: always
 
 esp32:
   board: esp32dev
