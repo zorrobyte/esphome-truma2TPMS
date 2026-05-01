@@ -117,9 +117,9 @@ external_components:
 - **Microcontroller** with BLE — recommended: [ESP32-S3 DevKitC-1](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/hw-reference/esp32s3/user-guide-devkitc-1.html)
 - **Framework**: ESP-IDF (mandatory for BLE Secure Connections / Bonding — Arduino is not supported)
 - **ESPHome** ≥ 2026.4.3
-- **MAC address** of the cooler — look up once via [nRF Connect](https://www.nordicsemi.com/Products/Development-tools/nRF-Connect-for-mobile) or the Truma app (unpair from app afterwards: only one BT connection allowed)
+- **MAC address** of the cooler — look up once via nRF Connect or the Truma app (unpair from app afterwards: only one BT connection allowed)
 
-> **Recommendation:** If you only have the Truma Cooler without a heater or air conditioner, consider running it on a dedicated **M5Stack Atom Lite**. It's compact, affordable, and supports ESP-IDF — a standalone BLE node just for the cooler. The M5Stack Atom also works excellently as an [ESPHome Bluetooth Proxy](https://esphome.io/components/bluetooth_proxy.html), making additional BLE devices accessible via Home Assistant — no extra hardware needed.
+> **Recommendation:** If you only have the Truma Cooler without a heater or air conditioner, consider running it on a dedicated **M5Stack Atom Lite**. It's compact, affordable, and supports ESP-IDF — a standalone BLE node just for the cooler. The M5Stack Atom also works excellently as an [ESPHome Bluetooth Proxy](https://esphome.io/components/bluetooth_proxy/), making additional BLE devices accessible via Home Assistant — no extra hardware needed.
 
 A complete example configuration is available in [`ESP32_truma_cooler_example.yaml`](ESP32_truma_cooler_example.yaml).
 

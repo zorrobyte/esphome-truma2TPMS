@@ -1,6 +1,6 @@
 # Hardware-Aufbau: Truma LIN-Bus Adapter
 
-🇩🇪 Deutsch | [🇬🇧 English](README.en.md) | [🇫🇷 Français](README.fr.md)
+🇩🇪 Deutsch | [🇬🇧 English](README.en.md)
 
 Dieses Dokument beschreibt den Aufbau des Hardware-Adapters, der einen ESP32-S3
 über den LIN-Bus mit einer Truma Combi-Heizung verbindet und die Steuerung via

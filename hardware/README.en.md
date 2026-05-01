@@ -1,6 +1,6 @@
 # Hardware Setup: Truma LIN-Bus Adapter
 
-[🇩🇪 Deutsch](README.md) | 🇬🇧 English | [🇫🇷 Français](README.fr.md)
+[🇩🇪 Deutsch](README.md) | 🇬🇧 English
 
 ---
 
