@@ -100,6 +100,7 @@ Tested against:
 - Support for the Truma Aventa Gen 2 air conditioner via the same LIN bus as the heater (CP Plus / iNet Box)
 - New climate type `AIRCON` for a full HA climate entity (modes: Off / Cool / Heat / Heat+Cool / Fan only)
 - New select types `AIRCON_MODE` and `AIRCON_VENT_MODE` for direct access to operating mode and fan speed
+- New number type `AIRCON_MANUAL_TEMPERATURE` (already present, now documented)
 - Example configuration `ESP32-S3_truma_Aventa_example.yaml`
 
 ---
