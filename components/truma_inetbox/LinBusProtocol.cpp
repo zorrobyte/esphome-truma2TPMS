@@ -8,6 +8,12 @@ namespace truma_inetbox {
 
 static const char *const TAG = "truma_inetbox.LinBusProtocol";
 
+// LIN Transport Protocol multi-frame split (ISO 17987-2 PCI bytes).
+// First frame carries the first 5 payload bytes after the PCI header,
+// every consecutive frame carries up to 6 payload bytes.
+static constexpr uint8_t LIN_TP_FIRST_FRAME_DATA_LEN = 5;
+static constexpr uint8_t LIN_TP_CONSECUTIVE_FRAME_DATA_LEN = 6;
+
 #define LIN_NAD_BROADCAST 0x7F
 #define LIN_SID_RESPONSE 0x40
 #define LIN_SID_ASSIGN_NAD 0xB0
@@ -235,19 +241,19 @@ void LinBusProtocol::lin_msg_diag_multi_() {
       response[1] = 0x10;
       response[2] = answer_len;
       response[3] = answer[0] | LIN_SID_RESPONSE;
-      for (uint8_t i = 1; i < 5; i++) {
+      for (uint8_t i = 1; i < LIN_TP_FIRST_FRAME_DATA_LEN; i++) {
         response[i + 3] = answer[i];
       }
       this->prepare_update_msg_(response);
 
-      // Multi Frame response - consecutive frame
-      uint16_t answer_position = 5;      // The first 5 bytes are sent in First frame of multi frame response.
-      uint8_t answer_frame_counter = 0;  // Each answer frame can contain 6 bytes
+      // Multi Frame response - consecutive frames carry the remaining payload.
+      uint16_t answer_position = LIN_TP_FIRST_FRAME_DATA_LEN;
+      uint8_t answer_frame_counter = 0;
       while (answer_position < answer_len) {
         response = this->lin_empty_response_;
         response[0] = this->lin_node_address_;
         response[1] = ((answer_frame_counter + 1) & 0x0F) | 0x20;
-        for (uint8_t i = 0; i < 6; i++) {
+        for (uint8_t i = 0; i < LIN_TP_CONSECUTIVE_FRAME_DATA_LEN; i++) {
           if (answer_position < answer_len) {
             response[i + 2] = answer[answer_position++];
           }

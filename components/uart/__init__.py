@@ -36,12 +36,6 @@ UARTComponent = uart_ns.class_("UARTComponent")
 
 IDFUARTComponent = uart_ns.class_(
     "truma_IDFUARTComponent", UARTComponent, cg.Component)
-ESP32ArduinoUARTComponent = uart_ns.class_(
-    "truma_ESP32ArduinoUARTComponent", UARTComponent, cg.Component
-)
-ESP8266UartComponent = uart_ns.class_(
-    "ESP8266UartComponent", UARTComponent, cg.Component
-)
 RP2040UartComponent = uart_ns.class_(
     "truma_RP2040UartComponent", UARTComponent, cg.Component)
 
@@ -65,11 +59,7 @@ def validate_raw_data(value):
 
 
 def validate_rx_pin(value):
-    value = pins.internal_gpio_input_pin_schema(value)
-    if CORE.is_esp8266 and value[CONF_NUMBER] >= 16:
-        raise cv.Invalid(
-            "Pins GPIO16 and GPIO17 cannot be used as RX pins on ESP8266.")
-    return value
+    return pins.internal_gpio_input_pin_schema(value)
 
 
 def validate_invert_esp32(config):
@@ -86,16 +76,12 @@ def validate_invert_esp32(config):
 
 
 def _uart_declare_type(value):
-    if CORE.is_esp8266:
-        return cv.declare_id(ESP8266UartComponent)(value)
-    if CORE.is_esp32:
-        if CORE.using_arduino:
-            return cv.declare_id(ESP32ArduinoUARTComponent)(value)
-        if not CORE.using_arduino:
-            return cv.declare_id(IDFUARTComponent)(value)
+    if CORE.is_esp32 and not CORE.using_arduino:
+        return cv.declare_id(IDFUARTComponent)(value)
     if CORE.is_rp2040:
         return cv.declare_id(RP2040UartComponent)(value)
-    raise NotImplementedError
+    raise cv.Invalid(
+        "truma's custom uart only supports ESP32 (ESP-IDF) and RP2040.")
 
 
 UARTParityOptions = uart_ns.enum("UARTParityOptions")
